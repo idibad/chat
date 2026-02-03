@@ -62,6 +62,7 @@ body {
     background: #0d6efd;
     color: white;
 } */
+
 .message {
     position: relative;
     max-width: 65%;
@@ -72,50 +73,43 @@ body {
     line-height: 1.4;
     word-wrap: break-word;
     color: white;
-    animation-duration: 8s;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-    transition: transform 0.2s;
+    transition: background 5s ease-in-out, transform 0.2s;
 }
 
 /* Hover pop effect */
 .message:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 
 /* Sent messages - right */
 .right {
     align-self: flex-end;
     background: linear-gradient(135deg, #0d6efd, #3b82f6);
-    animation-name: rightColors;
+    animation: smoothRight 15s infinite alternate;
 }
 
 /* Received messages - left */
 .left {
     align-self: flex-start;
     background: linear-gradient(135deg, #38bdf8, #22d3ee);
-    animation-name: leftColors;
+    animation: smoothLeft 15s infinite alternate;
 }
 
-/* Right bubble animation */
-@keyframes rightColors {
+/* Right bubble smooth gradient animation */
+@keyframes smoothRight {
     0% { background: linear-gradient(135deg, #0d6efd, #3b82f6); }
-    25% { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
-    50% { background: linear-gradient(135deg, #0ea5e9, #3b82f6); }
-    75% { background: linear-gradient(135deg, #2563eb, #60a5fa); }
+    50% { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
     100% { background: linear-gradient(135deg, #0d6efd, #3b82f6); }
 }
 
-/* Left bubble animation */
-@keyframes leftColors {
+/* Left bubble smooth gradient animation */
+@keyframes smoothLeft {
     0% { background: linear-gradient(135deg, #38bdf8, #22d3ee); }
-    25% { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
-    50% { background: linear-gradient(135deg, #06b6d4, #38bdf8); }
-    75% { background: linear-gradient(135deg, #60e0ff, #22d3ee); }
+    50% { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
     100% { background: linear-gradient(135deg, #38bdf8, #22d3ee); }
 }
 
-/* Delete button - stays same but nicer hover */
+/* Delete button */
 .delete-btn {
     position: absolute;
     top: -6px;
