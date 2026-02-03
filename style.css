@@ -9,8 +9,12 @@ body {
 }
 
 .chat-container {
-    height: 100vh;
+    height: 80vh;
     display: flex;
+    max-width: 750px;
+    min-width: 300px;
+    border-radius: 20%;
+    box-shadow: 5px 5px 10px #ccc;
     flex-direction: column;
 }
 
