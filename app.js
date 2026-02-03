@@ -163,15 +163,15 @@ onValue(chatRef, snapshot => {
         chatBox.appendChild(div);
 
         // ---------------- Notification ----------------
-        if (data.user !== currentUser && !notifiedMessages.has(key)) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(`${data.user} sent a message`, {
-                    body: data.message || "Voice Message",
-                    icon: "https://cdn-icons-png.flaticon.com/512/2462/2462719.png"
-                });
-            }
-            notifiedMessages.add(key);
-        }
+        // if (data.user !== currentUser && !notifiedMessages.has(key)) {
+        //     if ("Notification" in window && Notification.permission === "granted") {
+        //         new Notification(`${data.user} sent a message`, {
+        //             body: data.message || "Voice Message",
+        //             icon: "https://cdn-icons-png.flaticon.com/512/2462/2462719.png"
+        //         });
+        //     }
+        //     notifiedMessages.add(key);
+        // }
     });
 
     chatBox.scrollTop = chatBox.scrollHeight;
