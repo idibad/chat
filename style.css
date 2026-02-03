@@ -46,7 +46,7 @@ body {
   }
 }
 
-/* Updated Header - Title left, User name right */
+/* Header – title left, user name right */
 .chat-header {
   display: flex;
   justify-content: space-between;
@@ -79,7 +79,7 @@ body {
   background: linear-gradient(to bottom, #fff8f8, #f0f8ff);
 }
 
-/* Custom colorful scrollbar */
+/* Custom scrollbar */
 .chat-box::-webkit-scrollbar {
   width: 10px;
 }
@@ -97,7 +97,7 @@ body {
 
 .message {
   position: relative;
-  max-width: 70%; /* Increased from 35% → much more readable */
+  max-width: 70%;
   padding: 14px 18px;
   border-radius: 25px;
   margin-bottom: 8px;
@@ -168,68 +168,36 @@ body {
   transform: rotate(90deg);
 }
 
-/* Record button - circular with pulsing animation when recording */
-#recordBtn {
-  position: relative;
-  width: 48px;
-  height: 48px;
+/* Simple send button – circular & playful */
+#sendBtn {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff7e5f, #feb47b);
   color: white;
-  font-size: 20px;
+  font-size: 22px;
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(255,126,95,0.4);
-  margin-left: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-#recordBtn.recording {
-  background: #ff4757 !important;
-  animation: recordingPulse 1.8s infinite;
+#sendBtn:hover {
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: 0 12px 20px rgba(255,126,95,0.4);
 }
 
-@keyframes recordingPulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(255, 71, 87, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
-  }
-}
-
-/* Send button - keeps the pill shape */
-.chat-input button:not(#recordBtn) {
-  padding: 14px 24px;
-  border: none;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
-  color: white;
-  border-radius: 30px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.chat-input button:not(#recordBtn):hover {
-  transform: translateY(-4px) scale(1.08);
-  box-shadow: 0 12px 20px rgba(255,126,95,0.3);
-}
-
-.chat-input button:not(#recordBtn):active {
+#sendBtn:active {
   transform: translateY(0) scale(0.98);
 }
 
 .chat-input {
   display: flex;
   align-items: center;
+  gap: 14px;
   padding: 16px;
   background: white;
   border-top: 1px solid #eee;
@@ -249,6 +217,15 @@ body {
   border-color: #ff7e5f;
   box-shadow: 0 0 15px rgba(255,126,95,0.3);
   transform: scale(1.02);
+}
+
+/* Simple fallback audio player for old voice messages */
+.message audio {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 10px;
+  border-radius: 15px;
+  outline: none;
 }
 
 .register-screen {
@@ -276,20 +253,10 @@ body {
 }
 
 @keyframes bounceIn {
-  0% {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.1);
-  }
-  80% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.1); }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .register-box input {
@@ -326,82 +293,3 @@ body {
   transform: translateY(-4px) scale(1.08);
   box-shadow: 0 12px 20px rgba(255,126,95,0.3);
 }
-
-/* Custom playful voice message player */
-.voice-message {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-  padding: 8px 0;
-}
-
-.play-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  border: none;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-}
-
-.play-btn:hover {
-  transform: scale(1.1);
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* Received messages (left) */
-.left .play-btn {
-  background: rgba(0, 0, 0, 0.1);
-  color: #333;
-}
-
-.left .play-btn:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.waveform {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 32px;
-}
-
-.bar {
-  width: 4px;
-  background: currentColor;
-  border-radius: 2px;
-  opacity: 0.8;
-}
-
-.bar:nth-child(1) { height: 8px; animation-delay: 0s; }
-.bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
-.bar:nth-child(3) { height: 24px; animation-delay: 0.2s; }
-.bar:nth-child(4) { height: 12px; animation-delay: 0.3s; }
-.bar:nth-child(5) { height: 20px; animation-delay: 0.4s; }
-
-.voice-message.playing .bar {
-  animation: voiceBounce 1.4s ease-in-out infinite;
-}
-
-@keyframes voiceBounce {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(2.2); }
-}
-
-.voice-time {
-  font-size: 12px;
-  opacity: 0.7;
-  min-width: 36px;
-  text-align: right;
-}
-
-.left .voice-message { color: #555; }
-.right .voice-message { color: white; }
