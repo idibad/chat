@@ -1,57 +1,108 @@
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
+    background: #e9f2ff;
 }
 
 .chat-container {
-    width: 400px;
-    height: 600px;
-    margin: 40px auto;
-    background: white;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    border-radius: 10px;
 }
 
 .chat-header {
-    padding: 15px;
-    background: #2d3748;
+    background: #0d6efd;
     color: white;
+    padding: 16px;
+    font-size: 18px;
     text-align: center;
     font-weight: bold;
 }
 
 .chat-box {
     flex: 1;
-    padding: 15px;
+    padding: 20px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .message {
+    max-width: 60%;
+    padding: 10px 14px;
+    border-radius: 18px;
     margin-bottom: 10px;
+    font-size: 14px;
+    word-wrap: break-word;
 }
 
-.user {
-    font-weight: bold;
+.left {
+    align-self: flex-start;
+    background: white;
+    border: 1px solid #cfe2ff;
+}
+
+.right {
+    align-self: flex-end;
+    background: #0d6efd;
+    color: white;
 }
 
 .chat-input {
     display: flex;
-    padding: 10px;
+    padding: 12px;
+    background: white;
     border-top: 1px solid #ddd;
 }
 
 .chat-input input {
     flex: 1;
-    padding: 8px;
-    margin-right: 5px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
 }
 
 .chat-input button {
-    padding: 8px 12px;
-    background: #2d3748;
+    margin-left: 10px;
+    padding: 10px 16px;
+    border: none;
+    background: #0d6efd;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.register-screen {
+    position: fixed;
+    inset: 0;
+    background: #e9f2ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.register-box {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.register-box input {
+    padding: 10px;
+    width: 200px;
+    margin-top: 10px;
+}
+
+.register-box button {
+    margin-top: 10px;
+    padding: 10px 16px;
+    background: #0d6efd;
     color: white;
     border: none;
 }
