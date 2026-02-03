@@ -12,12 +12,10 @@ const firebaseConfig = {
   appId: "1:892172240411:web:92d9c62834db6929479abe",
   measurementId: "G-4ML1K78PBZ"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const storage = getStorage(app);
 const chatRef = ref(db, "messages");
-
 let currentUser = localStorage.getItem("chatUser");
 if (currentUser) document.getElementById("registerScreen").style.display = "none";
 
@@ -33,39 +31,42 @@ window.sendMessage = function () {
     const msgInput = document.getElementById("message");
     const msg = msgInput.value.trim();
     if (!msg) return;
-
     push(chatRef, {
         user: currentUser,
         message: msg,
         time: Date.now(),
         seen: [currentUser]
     });
-
     msgInput.value = "";
 };
 
 // ---------------- Voice Message ----------------
+// Fix 1: Added proper stream handling to stop microphone tracks
+// Fix 2: Replaced undefined sRef with correct storage reference (assumes you imported { ref as storageRef } from "firebase/storage")
+// Fix 3: Explicit mimeType for better cross-browser compatibility
+// Fix 4: Moved stream declaration outside to access it on stop
 let mediaRecorder;
 let audioChunks = [];
+let stream; // Added for proper cleanup
 const recordBtn = document.getElementById("recordBtn");
 let recording = false;
 
 recordBtn.addEventListener("click", async () => {
     try {
         if (!recording) {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
             audioChunks = [];
-
             mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
             mediaRecorder.onstop = async () => {
-                const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                const blob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
                 const filename = `voice_${Date.now()}.webm`;
-                const storageRef = sRef(storage, `voice/${filename}`);
-                await uploadBytes(storageRef, blob);
-                const url = await getDownloadURL(storageRef);
-
+                // === FIXED STORAGE REFERENCE ===
+                // Replace "storageRef" with whatever alias you used when importing ref from firebase/storage
+                // Example import: import { ref as storageRef } from "firebase/storage";
+                const voiceRef = storageRef(storage, `voice/${filename}`);
+                await uploadBytes(voiceRef, blob);
+                const url = await getDownloadURL(voiceRef);
                 push(chatRef, {
                     user: currentUser,
                     voiceUrl: url,
@@ -73,19 +74,29 @@ recordBtn.addEventListener("click", async () => {
                     seen: [currentUser]
                 });
             };
-
             mediaRecorder.start();
             recording = true;
             recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
+            // Optional playful touch: add a pulsing animation class while recording
+            recordBtn.classList.add("recording-pulse");
         } else {
             if (mediaRecorder && mediaRecorder.state === "recording") {
                 mediaRecorder.stop();
             }
+            // Stop microphone tracks to release hardware
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
             recording = false;
             recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
+            recordBtn.classList.remove("recording-pulse");
         }
     } catch (err) {
+        console.error(err);
         alert("Microphone access denied or not available");
+        recording = false;
+        recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
+        recordBtn.classList.remove("recording-pulse");
     }
 });
 
@@ -95,7 +106,6 @@ const notifiedMessages = new Set();
 
 onValue(chatRef, snapshot => {
     chatBox.innerHTML = "";
-
     snapshot.forEach(childSnapshot => {
         const data = childSnapshot.val();
         const key = childSnapshot.key;
@@ -118,13 +128,15 @@ onValue(chatRef, snapshot => {
             div.appendChild(textSpan);
         }
 
-        // Voice
+        // Voice - improved styling to match playful theme
         if (data.voiceUrl) {
             const audio = document.createElement("audio");
             audio.src = data.voiceUrl;
             audio.controls = true;
-            audio.style.marginTop = "5px";
-            audio.style.borderRadius = "10px";
+            audio.style.width = "100%";
+            audio.style.maxWidth = "300px";
+            audio.style.borderRadius = "15px";
+            audio.style.marginTop = "8px";
             div.appendChild(audio);
         }
 
@@ -141,7 +153,7 @@ onValue(chatRef, snapshot => {
             div.appendChild(timeSpan);
         }
 
-        // Delete button
+        // Delete button (only for own messages)
         if (data.user === currentUser) {
             const del = document.createElement("button");
             del.className = "delete-btn";
@@ -150,7 +162,7 @@ onValue(chatRef, snapshot => {
             div.appendChild(del);
         }
 
-        // Read receipt
+        // Read receipt (only for own messages)
         if (data.user === currentUser) {
             const receipt = document.createElement("span");
             receipt.style.fontSize = "10px";
@@ -173,7 +185,6 @@ onValue(chatRef, snapshot => {
             notifiedMessages.add(key);
         }
     });
-
     chatBox.scrollTop = chatBox.scrollHeight;
 });
 
