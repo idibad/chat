@@ -6,6 +6,7 @@
 body {
     margin: 0;
     background: #e9f2ff;
+    margin: 100px auto;
 }
 
 .chat-container {
