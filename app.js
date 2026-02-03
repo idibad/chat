@@ -3,14 +3,14 @@ import { getDatabase, ref, push, onValue, remove, update } from "https://www.gst
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // Firebase config
-const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "...",
-  measurementId: "..."
+const firebaseConfig = { 
+  apiKey: "AIzaSyCbdkDgRpRiof4c-9JjeuZEEfmpxV9eM2g",
+  authDomain: "chat-948ed.firebaseapp.com",
+  projectId: "chat-948ed",
+  storageBucket: "chat-948ed.firebasestorage.app",
+  messagingSenderId: "892172240411",
+  appId: "1:892172240411:web:92d9c62834db6929479abe",
+  measurementId: "G-4ML1K78PBZ"
 };
 
 const app = initializeApp(firebaseConfig);
