@@ -1,9 +1,9 @@
 
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyCbdkDgRpRiof4c-9JjeuZEEfmpxV9eM2g",
     authDomain: "chat-948ed.firebaseapp.com",
     projectId: "chat-948ed",
@@ -11,10 +11,11 @@ import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com
     messagingSenderId: "892172240411",
     appId: "1:892172240411:web:92d9c62834db6929479abe",
     measurementId: "G-4ML1K78PBZ"
-  };
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app);
 const chatRef = ref(db, "messages");
 
 let currentUser = localStorage.getItem("chatUser");
@@ -30,6 +31,7 @@ if (currentUser) {
     document.getElementById("registerScreen").style.display = "none";
 }
 
+// ---------------- Send Text Message ----------------
 window.sendMessage = function () {
     const msgInput = document.getElementById("message");
     const msg = msgInput.value.trim();
@@ -43,6 +45,51 @@ window.sendMessage = function () {
 
     msgInput.value = "";
 };
+
+// ---------------- Voice Message ----------------
+let mediaRecorder;
+let audioChunks = [];
+
+const recordBtn = document.createElement("button");
+recordBtn.id = "recordBtn";
+recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
+recordBtn.style.marginLeft = "5px";
+document.querySelector(".chat-input").appendChild(recordBtn);
+
+recordBtn.addEventListener("click", async () => {
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        // Start recording
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+            const filename = `voice_${Date.now()}.webm`;
+            const storageRef = sRef(storage, `voice/${filename}`);
+            await uploadBytes(storageRef, blob);
+            const url = await getDownloadURL(storageRef);
+
+            // Save voice message in DB
+            push(chatRef, {
+                user: currentUser,
+                voiceUrl: url,
+                time: Date.now()
+            });
+        };
+
+        mediaRecorder.start();
+        recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
+    } else {
+        // Stop recording
+        mediaRecorder.stop();
+        recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
+    }
+});
+
+// ---------------- Chat Display & Notifications ----------------
 const chatBox = document.getElementById("chatBox");
 
 onValue(chatRef, (snapshot) => {
@@ -58,10 +105,22 @@ onValue(chatRef, (snapshot) => {
         div.classList.add("message");
         div.classList.add(data.user === currentUser ? "right" : "left");
 
-        // Message text
-        const textSpan = document.createElement("span");
-        textSpan.innerText = data.message;
-        div.appendChild(textSpan);
+        // Text message
+        if (data.message) {
+            const textSpan = document.createElement("span");
+            textSpan.innerText = data.message;
+            div.appendChild(textSpan);
+        }
+
+        // Voice message
+        if (data.voiceUrl) {
+            const audio = document.createElement("audio");
+            audio.src = data.voiceUrl;
+            audio.controls = true;
+            audio.style.marginTop = "5px";
+            audio.style.borderRadius = "10px";
+            div.appendChild(audio);
+        }
 
         // Timestamp
         if (data.time) {
@@ -86,22 +145,30 @@ onValue(chatRef, (snapshot) => {
         }
 
         chatBox.appendChild(div);
+
+        // Browser notification for other users
+        if (data.user !== currentUser && Notification.permission === "granted") {
+            new Notification(`${data.user} sent a message`, {
+                body: data.message || "Voice Message",
+                icon: "https://cdn-icons-png.flaticon.com/512/2462/2462719.png"
+            });
+        }
     });
 
-    // Scroll to bottom
     chatBox.scrollTop = chatBox.scrollHeight;
 });
 
+// ---------------- Notifications Permission ----------------
+if ("Notification" in window) Notification.requestPermission();
 
-//==========
-
-
+// ---------------- Send on Enter ----------------
 document.getElementById("message").addEventListener("keypress", function (e) {
     if (e.key === "Enter") {
         e.preventDefault();
         sendMessage();
     }
 });
+
 
 // // Firebase imports
 // import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
