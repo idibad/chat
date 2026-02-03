@@ -43,50 +43,54 @@ window.sendMessage = function () {
 
     msgInput.value = "";
 };
-
 const chatBox = document.getElementById("chatBox");
 
 onValue(chatRef, (snapshot) => {
-    chatBox.innerHTML = "";
+    chatBox.innerHTML = ""; // clear old messages
 
-    snapshot.forEach(child => {
-    const data = child.val();
-    const key = child.key;
+    if (!snapshot.exists()) return; // nothing to show yet
 
-    const div = document.createElement("div");
-    div.classList.add("message");
-    div.classList.add(data.user === currentUser ? "right" : "left");
+    snapshot.forEach((childSnapshot) => {
+        const data = childSnapshot.val();
+        const key = childSnapshot.key;
 
-    // Message text
-    const textSpan = document.createElement("span");
-    textSpan.innerText = data.message;
-    div.appendChild(textSpan);
+        const div = document.createElement("div");
+        div.classList.add("message");
+        div.classList.add(data.user === currentUser ? "right" : "left");
 
-    // Timestamp
-    const timeSpan = document.createElement("div");
-    const date = new Date(data.time);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    timeSpan.innerText = `${hours}:${minutes}`;
-    timeSpan.style.fontSize = "10px";
-    timeSpan.style.marginTop = "4px";
-    timeSpan.style.opacity = "0.6";
-    div.appendChild(timeSpan);
+        // Message text
+        const textSpan = document.createElement("span");
+        textSpan.innerText = data.message;
+        div.appendChild(textSpan);
 
-    // Delete button for your messages
-    if (data.user === currentUser) {
-        const del = document.createElement("button");
-        del.className = "delete-btn";
-        del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
-        del.onclick = () => {
-            remove(ref(db, "messages/" + key));
-        };
-        div.appendChild(del);
-    }
+        // Timestamp
+        if (data.time) {
+            const timeSpan = document.createElement("div");
+            const date = new Date(data.time);
+            const hours = date.getHours().toString().padStart(2, "0");
+            const minutes = date.getMinutes().toString().padStart(2, "0");
+            timeSpan.innerText = `${hours}:${minutes}`;
+            timeSpan.style.fontSize = "10px";
+            timeSpan.style.marginTop = "4px";
+            timeSpan.style.opacity = "0.6";
+            div.appendChild(timeSpan);
+        }
 
-    chatBox.appendChild(div);
+        // Delete button for your messages
+        if (data.user === currentUser) {
+            const del = document.createElement("button");
+            del.className = "delete-btn";
+            del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+            del.onclick = () => remove(ref(db, "messages/" + key));
+            div.appendChild(del);
+        }
+
+        chatBox.appendChild(div);
+    });
+
+    // Scroll to bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
 });
-
 
 
 //==========
