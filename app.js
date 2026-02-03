@@ -50,32 +50,46 @@ onValue(chatRef, (snapshot) => {
     chatBox.innerHTML = "";
 
     snapshot.forEach(child => {
-        const data = child.val();
-        const key = child.key;
+    const data = child.val();
+    const key = child.key;
 
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(data.user === currentUser ? "right" : "left");
+    const div = document.createElement("div");
+    div.classList.add("message");
+    div.classList.add(data.user === currentUser ? "right" : "left");
 
-        div.innerText = data.user + ": " + data.message;
+    // Message text
+    const textSpan = document.createElement("span");
+    textSpan.innerText = data.message;
+    div.appendChild(textSpan);
 
-        // Delete button for own messages
-        if (data.user === currentUser) {
-            const del = document.createElement("button");
-            del.className = "delete-btn";
-            del.innerHTML = `<i class="fa fa-trash"></i>`;
+    // Timestamp
+    const timeSpan = document.createElement("div");
+    const date = new Date(data.time);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    timeSpan.innerText = `${hours}:${minutes}`;
+    timeSpan.style.fontSize = "10px";
+    timeSpan.style.marginTop = "4px";
+    timeSpan.style.opacity = "0.6";
+    div.appendChild(timeSpan);
 
-            del.onclick = () => {
-                remove(ref(db, "messages/" + key));
-            };
-            div.appendChild(del);
-        }
+    // Delete button for your messages
+    if (data.user === currentUser) {
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+        del.onclick = () => {
+            remove(ref(db, "messages/" + key));
+        };
+        div.appendChild(del);
+    }
 
-        chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
+    chatBox.appendChild(div);
 });
+
+
+
+//==========
 
 
 document.getElementById("message").addEventListener("keypress", function (e) {
