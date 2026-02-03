@@ -62,8 +62,9 @@ onValue(chatRef, (snapshot) => {
         // Delete button for own messages
         if (data.user === currentUser) {
             const del = document.createElement("button");
-            del.innerText = "×";
             del.className = "delete-btn";
+            del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+
             del.onclick = () => {
                 remove(ref(db, "messages/" + key));
             };
