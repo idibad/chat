@@ -62,7 +62,6 @@ body {
     background: #0d6efd;
     color: white;
 } */
-
 .message {
     position: relative;
     max-width: 65%;
@@ -72,37 +71,71 @@ body {
     font-size: 14px;
     line-height: 1.4;
     word-wrap: break-word;
+    color: white;
+    animation-duration: 8s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    transition: transform 0.2s;
 }
 
-.left {
-    align-self: flex-start;
-    background: #ffffff;
-    border: 1px solid #dbeafe;
+/* Hover pop effect */
+.message:hover {
+    transform: scale(1.05);
 }
 
+/* Sent messages - right */
 .right {
     align-self: flex-end;
     background: linear-gradient(135deg, #0d6efd, #3b82f6);
-    color: white;
+    animation-name: rightColors;
 }
 
+/* Received messages - left */
+.left {
+    align-self: flex-start;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+    animation-name: leftColors;
+}
+
+/* Right bubble animation */
+@keyframes rightColors {
+    0% { background: linear-gradient(135deg, #0d6efd, #3b82f6); }
+    25% { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+    50% { background: linear-gradient(135deg, #0ea5e9, #3b82f6); }
+    75% { background: linear-gradient(135deg, #2563eb, #60a5fa); }
+    100% { background: linear-gradient(135deg, #0d6efd, #3b82f6); }
+}
+
+/* Left bubble animation */
+@keyframes leftColors {
+    0% { background: linear-gradient(135deg, #38bdf8, #22d3ee); }
+    25% { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
+    50% { background: linear-gradient(135deg, #06b6d4, #38bdf8); }
+    75% { background: linear-gradient(135deg, #60e0ff, #22d3ee); }
+    100% { background: linear-gradient(135deg, #38bdf8, #22d3ee); }
+}
+
+/* Delete button - stays same but nicer hover */
 .delete-btn {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #ff4d4f;
-    color: white;
-    border: none;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    border: none;
+    background: white;
+    color: #ff4d4f;
     font-size: 12px;
-    cursor: pointer;
     display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .right:hover .delete-btn {
-    display: block;
+    display: flex;
 }
 
 .chat-input {
