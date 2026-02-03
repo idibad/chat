@@ -48,14 +48,31 @@ const chatBox = document.getElementById("chatBox");
 
 onValue(chatRef, (snapshot) => {
     chatBox.innerHTML = "";
+
     snapshot.forEach(child => {
         const data = child.val();
+        const key = child.key;
+
         const div = document.createElement("div");
         div.classList.add("message");
         div.classList.add(data.user === currentUser ? "right" : "left");
+
         div.innerText = data.user + ": " + data.message;
+
+        // Delete button for own messages
+        if (data.user === currentUser) {
+            const del = document.createElement("button");
+            del.innerText = "×";
+            del.className = "delete-btn";
+            del.onclick = () => {
+                remove(ref(db, "messages/" + key));
+            };
+            div.appendChild(del);
+        }
+
         chatBox.appendChild(div);
     });
+
     chatBox.scrollTop = chatBox.scrollHeight;
 });
 
