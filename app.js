@@ -16,20 +16,21 @@ const firebaseConfig = {
   measurementId: "G-4ML1K78PBZ"
 };
 
+
+
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const storage = getStorage(app);
 const chatRef = ref(db, "messages");
 
 // ---------- Current User ----------
 let currentUser = localStorage.getItem("chatUser");
-if (currentUser) document.getElementById("registerScreen").style.display = "none";
-let currentUser = localStorage.getItem("chatUser");
+
 if (currentUser) {
     document.getElementById("registerScreen").style.display = "none";
-    // ← Add this line below
     document.getElementById("currentUserDisplay").textContent = currentUser;
 }
+
 window.registerUser = function () {
     const name = document.getElementById("regName").value.trim();
     if (!name) return;
@@ -54,54 +55,6 @@ window.sendMessage = function () {
     });
     msgInput.value = "";
 };
-
-// ---------- Voice Message ----------
-let mediaRecorder;
-let audioChunks = [];
-let stream;
-let recording = false;
-const recordBtn = document.getElementById("recordBtn");
-
-recordBtn.addEventListener("click", async () => {
-    try {
-        if (!recording) {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-            audioChunks = [];
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = async () => {
-                if (audioChunks.length === 0) return;
-                const blob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
-                const filename = `voice_${Date.now()}.webm`;
-                const voiceRef = sRef(storage, `voice/${filename}`);
-                await uploadBytes(voiceRef, blob);
-                const url = await getDownloadURL(voiceRef);
-                push(chatRef, {
-                    user: currentUser,
-                    voiceUrl: url,
-                    time: Date.now(),
-                    seen: [currentUser]
-                });
-            };
-            mediaRecorder.start();
-            recording = true;
-            recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
-            recordBtn.classList.add("recording");
-        } else {
-            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
-            if (stream) stream.getTracks().forEach(track => track.stop());
-            recording = false;
-            recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
-            recordBtn.classList.remove("recording");
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Microphone access denied or unavailable");
-        recording = false;
-        recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
-        recordBtn.classList.remove("recording");
-    }
-});
 
 // ---------- Seen Update ----------
 function updateSeen(snapshot) {
@@ -147,62 +100,16 @@ onValue(chatRef, snapshot => {
             div.appendChild(textSpan);
         }
 
-        // Custom Playful Voice Message Player
+        // Fallback for any old voice messages (simple browser audio player)
         if (data.voiceUrl) {
-            const voiceContainer = document.createElement("div");
-            voiceContainer.className = "voice-message";
-
-            const playBtn = document.createElement("button");
-            playBtn.className = "play-btn";
-
             const audio = document.createElement("audio");
             audio.src = data.voiceUrl;
-            audio.preload = "metadata";
-
-            const waveform = document.createElement("div");
-            waveform.className = "waveform";
-            for (let i = 0; i < 5; i++) {
-                const bar = document.createElement("div");
-                bar.className = "bar";
-                waveform.appendChild(bar);
-            }
-
-            const timeSpan = document.createElement("span");
-            timeSpan.className = "voice-time";
-            timeSpan.innerText = "0:00";
-
-            audio.onloadedmetadata = () => {
-                const dur = Math.floor(audio.duration || 0);
-                const mins = Math.floor(dur / 60);
-                const secs = String(dur % 60).padStart(2, "0");
-                timeSpan.innerText = mins > 0 ? `${mins}:${secs}` : `0:${secs}`;
-            };
-
-            const updatePlayState = () => {
-                if (audio.paused) {
-                    playBtn.innerHTML = `<i class="fa-solid fa-play"></i>`;
-                    voiceContainer.classList.remove("playing");
-                } else {
-                    playBtn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
-                    voiceContainer.classList.add("playing");
-                }
-            };
-
-            playBtn.onclick = () => {
-                if (audio.paused) audio.play();
-                else audio.pause();
-                updatePlayState();
-            };
-
-            audio.onplay = () => updatePlayState();
-            audio.onpause = audio.onended = () => updatePlayState();
-            updatePlayState(); // initial state
-
-            voiceContainer.appendChild(playBtn);
-            voiceContainer.appendChild(waveform);
-            voiceContainer.appendChild(timeSpan);
-            voiceContainer.appendChild(audio); // hidden audio element
-            div.appendChild(voiceContainer);
+            audio.controls = true;
+            audio.style.width = "100%";
+            audio.style.maxWidth = "300px";
+            audio.style.marginTop = "10px";
+            audio.style.borderRadius = "15px";
+            div.appendChild(audio);
         }
 
         // Timestamp
@@ -218,7 +125,7 @@ onValue(chatRef, snapshot => {
             div.appendChild(timeSpan);
         }
 
-        // Delete button
+        // Delete button (only own messages)
         if (data.user === currentUser) {
             const del = document.createElement("button");
             del.className = "delete-btn";
@@ -227,7 +134,7 @@ onValue(chatRef, snapshot => {
             div.appendChild(del);
         }
 
-        // Read receipt
+        // Read receipt (only own messages)
         if (data.user === currentUser) {
             const receipt = document.createElement("span");
             receipt.style.fontSize = "10px";
@@ -246,7 +153,7 @@ onValue(chatRef, snapshot => {
     // Update seen when tab is visible
     if (!document.hidden) updateSeen(snapshot);
 
-    // Play notification sound ONLY for genuinely new messages (not on initial load)
+    // Play notification sound only for real new messages (not on load/reconnect)
     if (!isInitialLoad && currentCount > previousMessageCount && document.hidden) {
         notifSound.play().catch(e => console.log("Sound play blocked:", e));
     }
