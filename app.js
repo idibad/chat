@@ -1,6 +1,5 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -40,7 +39,8 @@ window.sendMessage = function () {
     push(chatRef, {
         user: currentUser,
         message: msg,
-        time: Date.now()
+        time: Date.now(),
+        seen: [currentUser]
     });
 
     msgInput.value = "";
@@ -49,16 +49,10 @@ window.sendMessage = function () {
 // ---------------- Voice Message ----------------
 let mediaRecorder;
 let audioChunks = [];
-
-const recordBtn = document.createElement("button");
-recordBtn.id = "recordBtn";
-recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
-recordBtn.style.marginLeft = "5px";
-document.querySelector(".chat-input").appendChild(recordBtn);
+const recordBtn = document.getElementById("recordBtn");
 
 recordBtn.addEventListener("click", async () => {
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        // Start recording
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
@@ -72,18 +66,17 @@ recordBtn.addEventListener("click", async () => {
             await uploadBytes(storageRef, blob);
             const url = await getDownloadURL(storageRef);
 
-            // Save voice message in DB
             push(chatRef, {
                 user: currentUser,
                 voiceUrl: url,
-                time: Date.now()
+                time: Date.now(),
+                seen: [currentUser]
             });
         };
 
         mediaRecorder.start();
         recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
     } else {
-        // Stop recording
         mediaRecorder.stop();
         recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
     }
@@ -93,26 +86,33 @@ recordBtn.addEventListener("click", async () => {
 const chatBox = document.getElementById("chatBox");
 
 onValue(chatRef, (snapshot) => {
-    chatBox.innerHTML = ""; // clear old messages
+    chatBox.innerHTML = "";
 
-    if (!snapshot.exists()) return; // nothing to show yet
+    if (!snapshot.exists()) return;
 
     snapshot.forEach((childSnapshot) => {
         const data = childSnapshot.val();
         const key = childSnapshot.key;
 
+        // ---------------- Mark Seen ----------------
+        if (!data.seen?.includes(currentUser)) {
+            const seenList = data.seen || [];
+            seenList.push(currentUser);
+            update(ref(db, "messages/" + key), { seen: seenList });
+        }
+
         const div = document.createElement("div");
         div.classList.add("message");
         div.classList.add(data.user === currentUser ? "right" : "left");
 
-        // Text message
+        // Text
         if (data.message) {
             const textSpan = document.createElement("span");
             textSpan.innerText = data.message;
             div.appendChild(textSpan);
         }
 
-        // Voice message
+        // Voice
         if (data.voiceUrl) {
             const audio = document.createElement("audio");
             audio.src = data.voiceUrl;
@@ -126,8 +126,8 @@ onValue(chatRef, (snapshot) => {
         if (data.time) {
             const timeSpan = document.createElement("div");
             const date = new Date(data.time);
-            const hours = date.getHours().toString().padStart(2, "0");
-            const minutes = date.getMinutes().toString().padStart(2, "0");
+            const hours = date.getHours().toString().padStart(2,"0");
+            const minutes = date.getMinutes().toString().padStart(2,"0");
             timeSpan.innerText = `${hours}:${minutes}`;
             timeSpan.style.fontSize = "10px";
             timeSpan.style.marginTop = "4px";
@@ -135,7 +135,7 @@ onValue(chatRef, (snapshot) => {
             div.appendChild(timeSpan);
         }
 
-        // Delete button for your messages
+        // Delete button
         if (data.user === currentUser) {
             const del = document.createElement("button");
             del.className = "delete-btn";
@@ -144,9 +144,19 @@ onValue(chatRef, (snapshot) => {
             div.appendChild(del);
         }
 
+        // Read receipt for sender
+        if (data.user === currentUser) {
+            const receipt = document.createElement("span");
+            receipt.style.fontSize = "10px";
+            receipt.style.marginLeft = "5px";
+            receipt.style.opacity = "0.6";
+            receipt.innerText = data.seen && data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
+            div.appendChild(receipt);
+        }
+
         chatBox.appendChild(div);
 
-        // Browser notification for other users
+        // Notifications for other users
         if (data.user !== currentUser && Notification.permission === "granted") {
             new Notification(`${data.user} sent a message`, {
                 body: data.message || "Voice Message",
@@ -168,148 +178,3 @@ document.getElementById("message").addEventListener("keypress", function (e) {
         sendMessage();
     }
 });
-
-
-// // Firebase imports
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-// import { 
-//     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
-//     signOut, onAuthStateChanged 
-// } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-// // TODO: Replace with your Firebase config
-//   const firebaseConfig = {
-//     apiKey: "AIzaSyCbdkDgRpRiof4c-9JjeuZEEfmpxV9eM2g",
-//     authDomain: "chat-948ed.firebaseapp.com",
-//     projectId: "chat-948ed",
-//     storageBucket: "chat-948ed.firebasestorage.app",
-//     messagingSenderId: "892172240411",
-//     appId: "1:892172240411:web:92d9c62834db6929479abe",
-//     measurementId: "G-4ML1K78PBZ"
-//   };
-
-// // Initialize Firebase
-// const app = initializeApp(firebaseConfig);
-// const db = getDatabase(app);
-// const auth = getAuth(app);
-// const chatRef = ref(db, "messages");
-
-// const chatBox = document.getElementById("chatBox");
-// let currentUser = null;
-// let isLogin = true;
-
-// // ---------------- Auth functions ----------------
-
-// window.toggleAuth = function() {
-//     isLogin = !isLogin;
-//     document.getElementById("authTitle").innerText = isLogin ? "Login" : "Register";
-//     document.getElementById("authBtn").innerText = isLogin ? "Login" : "Register";
-//     document.getElementById("toggleAuth").innerHTML = isLogin
-//         ? `Don't have an account? <span onclick="toggleAuth()">Register</span>`
-//         : `Already have an account? <span onclick="toggleAuth()">Login</span>`;
-// };
-
-// window.loginUser = function() {
-//     const email = document.getElementById("email").value.trim();
-//     const password = document.getElementById("password").value.trim();
-//     if (!email || !password) return alert("Fill all fields!");
-
-//     if (isLogin) {
-//         signInWithEmailAndPassword(auth, email, password)
-//             .catch(err => alert(err.message));
-//     } else {
-//         createUserWithEmailAndPassword(auth, email, password)
-//             .catch(err => alert(err.message));
-//     }
-// };
-
-// window.logoutUser = function() {
-//     signOut(auth);
-// };
-
-// // ---------------- Auth State ----------------
-
-// onAuthStateChanged(auth, (user) => {
-//     if (user) {
-//         currentUser = user.email.split("@")[0]; // simple display name
-//         document.getElementById("authScreen").style.display = "none";
-//         document.getElementById("chatScreen").style.display = "flex";
-//     } else {
-//         currentUser = null;
-//         document.getElementById("authScreen").style.display = "flex";
-//         document.getElementById("chatScreen").style.display = "none";
-//     }
-// });
-
-// // ---------------- Send Message ----------------
-
-// window.sendMessage = function() {
-//     const msgInput = document.getElementById("message");
-//     const msg = msgInput.value.trim();
-//     if (!msg || !currentUser) return;
-
-//     push(chatRef, {
-//         user: currentUser,
-//         message: msg,
-//         time: Date.now()
-//     });
-
-//     msgInput.value = "";
-// };
-
-// // ---------------- Listen for Messages ----------------
-
-// onValue(chatRef, (snapshot) => {
-//     chatBox.innerHTML = "";
-//     if (!snapshot.exists()) return;
-
-//     snapshot.forEach((childSnapshot) => {
-//         const data = childSnapshot.val();
-//         const key = childSnapshot.key;
-
-//         const div = document.createElement("div");
-//         div.classList.add("message");
-//         div.classList.add(data.user === currentUser ? "right" : "left");
-
-//         // Message text
-//         const textSpan = document.createElement("span");
-//         textSpan.innerText = data.message;
-//         div.appendChild(textSpan);
-
-//         // Timestamp
-//         if (data.time) {
-//             const timeSpan = document.createElement("div");
-//             const date = new Date(data.time);
-//             const hours = date.getHours().toString().padStart(2,"0");
-//             const minutes = date.getMinutes().toString().padStart(2,"0");
-//             timeSpan.innerText = `${hours}:${minutes}`;
-//             timeSpan.style.fontSize = "10px";
-//             timeSpan.style.marginTop = "4px";
-//             timeSpan.style.opacity = "0.6";
-//             div.appendChild(timeSpan);
-//         }
-
-//         // Delete button for your messages
-//         if (data.user === currentUser) {
-//             const del = document.createElement("button");
-//             del.className = "delete-btn";
-//             del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
-//             del.onclick = () => remove(ref(db, "messages/" + key));
-//             div.appendChild(del);
-//         }
-
-//         chatBox.appendChild(div);
-//     });
-
-//     chatBox.scrollTop = chatBox.scrollHeight;
-// });
-
-// // ---------------- Send on Enter ----------------
-
-// document.getElementById("message").addEventListener("keypress", function(e) {
-//     if (e.key === "Enter") {
-//         e.preventDefault();
-//         sendMessage();
-//     }
-// });
