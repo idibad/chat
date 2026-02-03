@@ -59,3 +59,11 @@ onValue(chatRef, (snapshot) => {
     chatBox.scrollTop = chatBox.scrollHeight;
 });
 
+
+document.getElementById("message").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
