@@ -4,27 +4,32 @@
     <meta charset="UTF-8" />
     <title>Bro-Sis Chat</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" referrerpolicy="no-referrer" />
 </head>
 <body>
 
-<div id="registerScreen" class="register-screen">
+<!-- Login/Register Screen -->
+<div id="authScreen" class="register-screen">
     <div class="register-box">
-        <h2>Enter your name</h2>
-        <input type="text" id="regName" placeholder="Your name">
-        <button onclick="registerUser()">Start Chat</button>
+        <h2 id="authTitle">Login</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="authBtn" onclick="loginUser()">Login</button>
+        <p id="toggleAuth">Don't have an account? <span onclick="toggleAuth()">Register</span></p>
     </div>
 </div>
 
-<div class="chat-container">
-    
-    <div class="chat-header">Bro-sis Chat</div>
+<!-- Chat Screen -->
+<div id="chatScreen" class="chat-container" style="display:none">
+    <div class="chat-header">
+        Bro-sis Chat
+        <button style="float:right; padding:4px 8px; font-size:12px;" onclick="logoutUser()">Logout</button>
+    </div>
     <div id="chatBox" class="chat-box"></div>
     
     <div class="chat-input">
         <input type="text" id="message" placeholder="Type message...">
-        <button onclick="sendMessage()"><i class="fa fa-paper-plane"></i></button>
-
+        <button onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
 </div>
 
