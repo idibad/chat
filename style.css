@@ -243,6 +243,25 @@ body {
   }
 }
 
+.message audio {
+    width: 100%;
+    border-radius: 12px;
+    outline: none;
+    margin-top: 5px;
+}
+
+.right audio {
+    background: linear-gradient(135deg, #0d6efd, #3b82f6);
+    color: white;
+    padding: 5px;
+}
+
+.left audio {
+    background: #f1f5f9;
+    color: black;
+    padding: 5px;
+}
+
 .register-box input {
   padding: 14px 18px;
   width: 260px;
