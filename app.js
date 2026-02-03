@@ -112,15 +112,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // TODO: Replace with your Firebase config
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DB_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCbdkDgRpRiof4c-9JjeuZEEfmpxV9eM2g",
+    authDomain: "chat-948ed.firebaseapp.com",
+    projectId: "chat-948ed",
+    storageBucket: "chat-948ed.firebasestorage.app",
+    messagingSenderId: "892172240411",
+    appId: "1:892172240411:web:92d9c62834db6929479abe",
+    measurementId: "G-4ML1K78PBZ"
+  };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
