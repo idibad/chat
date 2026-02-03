@@ -1,3 +1,5 @@
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -13,22 +15,33 @@ import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebas
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
 const chatRef = ref(db, "messages");
 
-window.sendMessage = function () {
-    const user = document.getElementById("username").value;
-    const msg = document.getElementById("message").value;
+let currentUser = localStorage.getItem("chatUser");
 
-    if (!user || !msg) return;
+window.registerUser = function () {
+    const name = document.getElementById("regName").value.trim();
+    if (!name) return;
+    localStorage.setItem("chatUser", name);
+    location.reload();
+};
+
+if (currentUser) {
+    document.getElementById("registerScreen").style.display = "none";
+}
+
+window.sendMessage = function () {
+    const msgInput = document.getElementById("message");
+    const msg = msgInput.value.trim();
+    if (!msg) return;
 
     push(chatRef, {
-        user: user,
+        user: currentUser,
         message: msg,
         time: Date.now()
     });
 
-    document.getElementById("message").value = "";
+    msgInput.value = "";
 };
 
 const chatBox = document.getElementById("chatBox");
@@ -37,12 +50,12 @@ onValue(chatRef, (snapshot) => {
     chatBox.innerHTML = "";
     snapshot.forEach(child => {
         const data = child.val();
-        chatBox.innerHTML += `
-            <div class="message">
-                <span class="user">${data.user}:</span>
-                <span>${data.message}</span>
-            </div>
-        `;
+        const div = document.createElement("div");
+        div.classList.add("message");
+        div.classList.add(data.user === currentUser ? "right" : "left");
+        div.innerText = data.user + ": " + data.message;
+        chatBox.appendChild(div);
     });
     chatBox.scrollTop = chatBox.scrollHeight;
 });
+
