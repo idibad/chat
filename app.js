@@ -12,6 +12,8 @@ const firebaseConfig = {
   appId: "1:892172240411:web:92d9c62834db6929479abe",
   measurementId: "G-4ML1K78PBZ"
 };
+
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const storage = getStorage(app);
@@ -41,13 +43,9 @@ window.sendMessage = function () {
 };
 
 // ---------------- Voice Message ----------------
-// Fix 1: Added proper stream handling to stop microphone tracks
-// Fix 2: Replaced undefined sRef with correct storage reference (assumes you imported { ref as storageRef } from "firebase/storage")
-// Fix 3: Explicit mimeType for better cross-browser compatibility
-// Fix 4: Moved stream declaration outside to access it on stop
 let mediaRecorder;
 let audioChunks = [];
-let stream; // Added for proper cleanup
+let stream;
 const recordBtn = document.getElementById("recordBtn");
 let recording = false;
 
@@ -61,9 +59,6 @@ recordBtn.addEventListener("click", async () => {
             mediaRecorder.onstop = async () => {
                 const blob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
                 const filename = `voice_${Date.now()}.webm`;
-                // === FIXED STORAGE REFERENCE ===
-                // Replace "storageRef" with whatever alias you used when importing ref from firebase/storage
-                // Example import: import { ref as storageRef } from "firebase/storage";
                 const voiceRef = storageRef(storage, `voice/${filename}`);
                 await uploadBytes(voiceRef, blob);
                 const url = await getDownloadURL(voiceRef);
@@ -77,26 +72,46 @@ recordBtn.addEventListener("click", async () => {
             mediaRecorder.start();
             recording = true;
             recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
-            // Optional playful touch: add a pulsing animation class while recording
-            recordBtn.classList.add("recording-pulse");
+            recordBtn.classList.add("recording");
         } else {
             if (mediaRecorder && mediaRecorder.state === "recording") {
                 mediaRecorder.stop();
             }
-            // Stop microphone tracks to release hardware
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
             recording = false;
             recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
-            recordBtn.classList.remove("recording-pulse");
+            recordBtn.classList.remove("recording");
         }
     } catch (err) {
         console.error(err);
         alert("Microphone access denied or not available");
         recording = false;
         recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
-        recordBtn.classList.remove("recording-pulse");
+        recordBtn.classList.remove("recording");
+    }
+});
+
+// ---------------- Seen Update Logic ----------------
+function updateSeen(snapshot) {
+    const updates = {};
+    snapshot.forEach(childSnapshot => {
+        const data = childSnapshot.val();
+        const key = childSnapshot.key;
+        if (!data.seen?.includes(currentUser)) {
+            updates[`messages/${key}/seen`] = [...(data.seen || []), currentUser];
+        }
+    });
+    if (Object.keys(updates).length > 0) {
+        update(ref(db), updates);
+    }
+}
+
+// Call when tab becomes visible (marks any pending unseen messages as seen)
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        get(chatRef).then(snapshot => updateSeen(snapshot));
     }
 });
 
@@ -110,13 +125,6 @@ onValue(chatRef, snapshot => {
         const data = childSnapshot.val();
         const key = childSnapshot.key;
 
-        // ---------------- Update Seen in background ----------------
-        if (!data.seen?.includes(currentUser)) {
-            const seenList = data.seen || [];
-            seenList.push(currentUser);
-            update(ref(db, "messages/" + key), { seen: seenList });
-        }
-
         const div = document.createElement("div");
         div.classList.add("message");
         div.classList.add(data.user === currentUser ? "right" : "left");
@@ -128,16 +136,64 @@ onValue(chatRef, snapshot => {
             div.appendChild(textSpan);
         }
 
-        // Voice - improved styling to match playful theme
+        // Voice Message - Custom playful player
         if (data.voiceUrl) {
+            const voiceContainer = document.createElement("div");
+            voiceContainer.className = "voice-message";
+
+            const playBtn = document.createElement("button");
+            playBtn.className = "play-btn";
+
             const audio = document.createElement("audio");
             audio.src = data.voiceUrl;
-            audio.controls = true;
-            audio.style.width = "100%";
-            audio.style.maxWidth = "300px";
-            audio.style.borderRadius = "15px";
-            audio.style.marginTop = "8px";
-            div.appendChild(audio);
+            audio.preload = "metadata";
+            audio.controls = false; // Hidden - we use custom controls
+
+            const waveform = document.createElement("div");
+            waveform.className = "waveform";
+            for (let i = 0; i < 5; i++) {
+                const bar = document.createElement("div");
+                bar.className = "bar";
+                waveform.appendChild(bar);
+            }
+
+            const timeSpan = document.createElement("span");
+            timeSpan.className = "voice-time";
+            timeSpan.innerText = "0:00";
+
+            audio.onloadedmetadata = () => {
+                const dur = audio.duration || 0;
+                const mins = Math.floor(dur / 60);
+                const secs = Math.floor(dur % 60).toString().padStart(2, "0");
+                timeSpan.innerText = mins > 0 ? `${mins}:${secs}` : `0:${secs}`;
+            };
+
+            const updatePlayState = () => {
+                if (audio.paused) {
+                    playBtn.innerHTML = `<i class="fa-solid fa-play"></i>`;
+                    voiceContainer.classList.remove("playing");
+                } else {
+                    playBtn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
+                    voiceContainer.classList.add("playing");
+                }
+            };
+
+            playBtn.onclick = () => {
+                if (audio.paused) audio.play();
+                else audio.pause();
+                updatePlayState();
+            };
+
+            audio.onplay = () => updatePlayState();
+            audio.onpause = audio.onended = () => updatePlayState();
+
+            updatePlayState(); // initial
+
+            voiceContainer.appendChild(playBtn);
+            voiceContainer.appendChild(waveform);
+            voiceContainer.appendChild(timeSpan);
+            voiceContainer.appendChild(audio); // hidden
+            div.appendChild(voiceContainer);
         }
 
         // Timestamp
@@ -153,7 +209,7 @@ onValue(chatRef, snapshot => {
             div.appendChild(timeSpan);
         }
 
-        // Delete button (only for own messages)
+        // Delete button
         if (data.user === currentUser) {
             const del = document.createElement("button");
             del.className = "delete-btn";
@@ -162,7 +218,7 @@ onValue(chatRef, snapshot => {
             div.appendChild(del);
         }
 
-        // Read receipt (only for own messages)
+        // Read receipt
         if (data.user === currentUser) {
             const receipt = document.createElement("span");
             receipt.style.fontSize = "10px";
@@ -174,8 +230,8 @@ onValue(chatRef, snapshot => {
 
         chatBox.appendChild(div);
 
-        // ---------------- Notification ----------------
-        if (data.user !== currentUser && !notifiedMessages.has(key)) {
+        // ---------------- Notification (only when tab is hidden) ----------------
+        if (data.user !== currentUser && !notifiedMessages.has(key) && document.hidden) {
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification(`${data.user} sent a message`, {
                     body: data.message || "Voice Message",
@@ -185,6 +241,12 @@ onValue(chatRef, snapshot => {
             notifiedMessages.add(key);
         }
     });
+
+    // Mark messages as seen ONLY when tab is visible
+    if (!document.hidden) {
+        updateSeen(snapshot);
+    }
+
     chatBox.scrollTop = chatBox.scrollHeight;
 });
 
