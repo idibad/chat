@@ -6,10 +6,11 @@
 body {
     margin: 0;
     background: #e9f2ff;
-    margin: 100px auto;
 }
 
 .chat-container {
+    
+    margin: 100px auto;
     height: 80vh;
     display: flex;
     max-width: 750px;
