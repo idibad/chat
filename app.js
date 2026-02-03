@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+// Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyCbdkDgRpRiof4c-9JjeuZEEfmpxV9eM2g",
     authDomain: "chat-948ed.firebaseapp.com",
@@ -18,6 +19,7 @@ const storage = getStorage(app);
 const chatRef = ref(db, "messages");
 
 let currentUser = localStorage.getItem("chatUser");
+if (currentUser) document.getElementById("registerScreen").style.display = "none";
 
 window.registerUser = function () {
     const name = document.getElementById("regName").value.trim();
@@ -25,10 +27,6 @@ window.registerUser = function () {
     localStorage.setItem("chatUser", name);
     location.reload();
 };
-
-if (currentUser) {
-    document.getElementById("registerScreen").style.display = "none";
-}
 
 // ---------------- Send Text Message ----------------
 window.sendMessage = function () {
@@ -50,122 +48,126 @@ window.sendMessage = function () {
 let mediaRecorder;
 let audioChunks = [];
 const recordBtn = document.getElementById("recordBtn");
+let recording = false;
 
 recordBtn.addEventListener("click", async () => {
-    if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+    try {
+        if (!recording) {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
 
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(audioChunks, { type: 'audio/webm' });
-            const filename = `voice_${Date.now()}.webm`;
-            const storageRef = sRef(storage, `voice/${filename}`);
-            await uploadBytes(storageRef, blob);
-            const url = await getDownloadURL(storageRef);
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                const filename = `voice_${Date.now()}.webm`;
+                const storageRef = sRef(storage, `voice/${filename}`);
+                await uploadBytes(storageRef, blob);
+                const url = await getDownloadURL(storageRef);
 
-            push(chatRef, {
-                user: currentUser,
-                voiceUrl: url,
-                time: Date.now(),
-                seen: [currentUser]
-            });
-        };
+                push(chatRef, {
+                    user: currentUser,
+                    voiceUrl: url,
+                    time: Date.now(),
+                    seen: [currentUser]
+                });
+            };
 
-        mediaRecorder.start();
-        recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
-    } else {
-        mediaRecorder.stop();
-        recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
+            mediaRecorder.start();
+            recording = true;
+            recordBtn.innerHTML = `<i class="fa fa-stop"></i>`;
+        } else {
+            mediaRecorder.stop();
+            recording = false;
+            recordBtn.innerHTML = `<i class="fa fa-microphone"></i>`;
+        }
+    } catch (err) {
+        alert("Microphone access denied or not available");
     }
 });
 
 // ---------------- Chat Display & Notifications ----------------
 const chatBox = document.getElementById("chatBox");
+const notifiedMessages = new Set();
 
-onValue(chatRef, (snapshot) => {
-    chatBox.innerHTML = "";
+onChildAdded(chatRef, (childSnapshot) => {
+    const data = childSnapshot.val();
+    const key = childSnapshot.key;
 
-    if (!snapshot.exists()) return;
+    // ---------------- Mark Seen ----------------
+    if (!data.seen?.includes(currentUser)) {
+        const seenList = data.seen || [];
+        seenList.push(currentUser);
+        update(ref(db, "messages/" + key), { seen: seenList });
+    }
 
-    snapshot.forEach((childSnapshot) => {
-        const data = childSnapshot.val();
-        const key = childSnapshot.key;
+    const div = document.createElement("div");
+    div.classList.add("message");
+    div.classList.add(data.user === currentUser ? "right" : "left");
 
-        // ---------------- Mark Seen ----------------
-        if (!data.seen?.includes(currentUser)) {
-            const seenList = data.seen || [];
-            seenList.push(currentUser);
-            update(ref(db, "messages/" + key), { seen: seenList });
-        }
+    // Text
+    if (data.message) {
+        const textSpan = document.createElement("span");
+        textSpan.innerText = data.message;
+        div.appendChild(textSpan);
+    }
 
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(data.user === currentUser ? "right" : "left");
+    // Voice
+    if (data.voiceUrl) {
+        const audio = document.createElement("audio");
+        audio.src = data.voiceUrl;
+        audio.controls = true;
+        audio.style.marginTop = "5px";
+        audio.style.borderRadius = "10px";
+        div.appendChild(audio);
+    }
 
-        // Text
-        if (data.message) {
-            const textSpan = document.createElement("span");
-            textSpan.innerText = data.message;
-            div.appendChild(textSpan);
-        }
+    // Timestamp
+    if (data.time) {
+        const date = new Date(data.time);
+        const hours = date.getHours().toString().padStart(2,"0");
+        const minutes = date.getMinutes().toString().padStart(2,"0");
+        const timeSpan = document.createElement("div");
+        timeSpan.innerText = `${hours}:${minutes}`;
+        timeSpan.style.fontSize = "10px";
+        timeSpan.style.marginTop = "4px";
+        timeSpan.style.opacity = "0.6";
+        div.appendChild(timeSpan);
+    }
 
-        // Voice
-        if (data.voiceUrl) {
-            const audio = document.createElement("audio");
-            audio.src = data.voiceUrl;
-            audio.controls = true;
-            audio.style.marginTop = "5px";
-            audio.style.borderRadius = "10px";
-            div.appendChild(audio);
-        }
+    // Delete button
+    if (data.user === currentUser) {
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+        del.onclick = () => remove(ref(db, "messages/" + key));
+        div.appendChild(del);
+    }
 
-        // Timestamp
-        if (data.time) {
-            const timeSpan = document.createElement("div");
-            const date = new Date(data.time);
-            const hours = date.getHours().toString().padStart(2,"0");
-            const minutes = date.getMinutes().toString().padStart(2,"0");
-            timeSpan.innerText = `${hours}:${minutes}`;
-            timeSpan.style.fontSize = "10px";
-            timeSpan.style.marginTop = "4px";
-            timeSpan.style.opacity = "0.6";
-            div.appendChild(timeSpan);
-        }
+    // Read receipt
+    if (data.user === currentUser) {
+        const receipt = document.createElement("span");
+        receipt.style.fontSize = "10px";
+        receipt.style.marginLeft = "5px";
+        receipt.style.opacity = "0.6";
+        receipt.innerText = data.seen && data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
+        div.appendChild(receipt);
+    }
 
-        // Delete button
-        if (data.user === currentUser) {
-            const del = document.createElement("button");
-            del.className = "delete-btn";
-            del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
-            del.onclick = () => remove(ref(db, "messages/" + key));
-            div.appendChild(del);
-        }
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-        // Read receipt for sender
-        if (data.user === currentUser) {
-            const receipt = document.createElement("span");
-            receipt.style.fontSize = "10px";
-            receipt.style.marginLeft = "5px";
-            receipt.style.opacity = "0.6";
-            receipt.innerText = data.seen && data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
-            div.appendChild(receipt);
-        }
-
-        chatBox.appendChild(div);
-
-        // Notifications for other users
-        if (data.user !== currentUser && Notification.permission === "granted") {
+    // ---------------- Notification (only once per new message) ----------------
+    if (data.user !== currentUser && !notifiedMessages.has(key)) {
+        if ("Notification" in window && Notification.permission === "granted") {
             new Notification(`${data.user} sent a message`, {
                 body: data.message || "Voice Message",
                 icon: "https://cdn-icons-png.flaticon.com/512/2462/2462719.png"
             });
         }
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
+        notifiedMessages.add(key);
+    }
 });
 
 // ---------------- Notifications Permission ----------------
