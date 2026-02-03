@@ -63,7 +63,7 @@ onValue(chatRef, (snapshot) => {
         if (data.user === currentUser) {
             const del = document.createElement("button");
             del.className = "delete-btn";
-            del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+            del.innerHTML = `<i class="fa fa-trash"></i>`;
 
             del.onclick = () => {
                 remove(ref(db, "messages/" + key));
