@@ -83,9 +83,11 @@ function addMessage(key, data) {
     div.id = key;
 
     // Message text
-    const text = document.createElement("div");
-    text.textContent = data.message;
-    div.appendChild(text);
+    // Username + Message
+const text = document.createElement("div");
+text.innerHTML = `<strong>${data.user}</strong>: ${data.message}`;
+div.appendChild(text);
+
 
     // Time
     const time = document.createElement("div");
