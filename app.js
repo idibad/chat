@@ -24,25 +24,31 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "messages");
 
+// ---------- Elements ----------
+const chatBox = document.getElementById("chatBox");
+const msgInput = document.getElementById("message");
+const notifSound = document.getElementById("notifSound");
+const registerScreen = document.getElementById("registerScreen");
+const chatContainer = document.querySelector(".chat-container");
+
 // ---------- Current User ----------
 let currentUser = localStorage.getItem("chatUser");
 
 if (currentUser) {
-    document.getElementById("registerScreen").style.display = "none";
+    registerScreen.style.display = "none";
+    chatContainer.style.display = "flex";
     document.getElementById("currentUserDisplay").textContent = currentUser;
+} else {
+    chatContainer.style.display = "none";
 }
 
+// ---------- Register ----------
 window.registerUser = function () {
     const name = document.getElementById("regName").value.trim();
     if (!name) return;
     localStorage.setItem("chatUser", name);
     location.reload();
 };
-
-// ---------- Elements ----------
-const chatBox = document.getElementById("chatBox");
-const msgInput = document.getElementById("message");
-const notifSound = document.getElementById("notifSound");
 
 // ---------- Send Message ----------
 window.sendMessage = function () {
@@ -66,37 +72,38 @@ msgInput.addEventListener("keypress", e => {
     }
 });
 
-// ---------- Helper ----------
+// ---------- Helpers ----------
 function formatTime(ts) {
     const d = new Date(ts);
     return d.getHours().toString().padStart(2, "0") + ":" +
            d.getMinutes().toString().padStart(2, "0");
 }
 
-// ---------- Render Message ----------
 function getUserColor(name) {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = hash % 360;
-    return `hsl(${hue}, 70%, 80%)`;
+    return `hsl(${hue},70%,85%)`;
 }
 
+// ---------- Render Message ----------
 function addMessage(key, data) {
-    if (!data.message) return; // prevents undefined bug
+    if (!data.message) return;
 
     const div = document.createElement("div");
     div.classList.add("message");
-    div.classList.add(data.user === currentUser ? "right" : "left");
     div.id = key;
 
-    // Message text
-    // Username + Message
-const text = document.createElement("div");
-text.innerHTML = `<strong>${data.user}</strong>: ${data.message}`;
-div.appendChild(text);
+    // Color per user
+    div.style.background = getUserColor(data.user);
+    div.style.alignSelf = data.user === currentUser ? "flex-end" : "flex-start";
 
+    // Username + message
+    const text = document.createElement("div");
+    text.innerHTML = `<strong>${data.user}</strong>: ${data.message}`;
+    div.appendChild(text);
 
     // Time
     const time = document.createElement("div");
@@ -119,7 +126,7 @@ div.appendChild(text);
         receipt.style.fontSize = "10px";
         receipt.style.marginLeft = "6px";
         receipt.style.opacity = "0.7";
-        receipt.innerText = data.seen.length > 1 ? "✓ Seen" : "- Sent";
+        receipt.innerText = data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
         div.appendChild(receipt);
     }
 
@@ -133,7 +140,7 @@ div.appendChild(text);
         });
     }
 
-    // Notification
+    // Notification sound
     if (data.user !== currentUser && document.hidden) {
         notifSound.play().catch(() => {});
     }
