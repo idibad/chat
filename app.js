@@ -59,7 +59,6 @@ window.sendMessage = function () {
     msgInput.value = "";
 };
 
-// Send on Enter
 msgInput.addEventListener("keypress", e => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -67,16 +66,36 @@ msgInput.addEventListener("keypress", e => {
     }
 });
 
-// ---------- Render Functions ----------
+// ---------- Helper ----------
+function formatTime(ts) {
+    const d = new Date(ts);
+    return d.getHours().toString().padStart(2, "0") + ":" +
+           d.getMinutes().toString().padStart(2, "0");
+}
+
+// ---------- Render Message ----------
 function addMessage(key, data) {
+    if (!data.message) return; // prevents undefined bug
+
     const div = document.createElement("div");
     div.classList.add("message");
     div.classList.add(data.user === currentUser ? "right" : "left");
     div.id = key;
 
-    div.innerText = data.user + ": " + data.message;
+    // Message text
+    const text = document.createElement("div");
+    text.textContent = data.message;
+    div.appendChild(text);
 
-    // Delete button for own messages
+    // Time
+    const time = document.createElement("div");
+    time.style.fontSize = "10px";
+    time.style.opacity = "0.6";
+    time.style.marginTop = "4px";
+    time.textContent = formatTime(data.time);
+    div.appendChild(time);
+
+    // Delete + receipt for own message
     if (data.user === currentUser) {
         const del = document.createElement("button");
         del.innerText = "×";
@@ -84,7 +103,6 @@ function addMessage(key, data) {
         del.onclick = () => remove(ref(db, "messages/" + key));
         div.appendChild(del);
 
-        // Seen / Sent receipt
         const receipt = document.createElement("span");
         receipt.className = "receipt";
         receipt.style.fontSize = "10px";
@@ -104,16 +122,14 @@ function addMessage(key, data) {
         });
     }
 
-    // Notification for new message
+    // Notification
     if (data.user !== currentUser && document.hidden) {
         notifSound.play().catch(() => {});
     }
 }
 
 // ---------- Firebase Listeners ----------
-onChildAdded(chatRef, snap => {
-    addMessage(snap.key, snap.val());
-});
+onChildAdded(chatRef, snap => addMessage(snap.key, snap.val()));
 
 onChildRemoved(chatRef, snap => {
     const el = document.getElementById(snap.key);
