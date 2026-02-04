@@ -110,8 +110,7 @@ function addMessage(key, data) {
 
     // Username + message
     const text = document.createElement("div");
-    text.innerHTML = `<strong>${data.user}</strong>`;
-    text.innerHTML = `${data.message}`;
+    text.innerHTML = `<strong style="text-transform: capitalize;">${data.user}</strong><br> ${data.message}`;
     div.appendChild(text);
 
     // Time
