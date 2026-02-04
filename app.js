@@ -1,159 +1,128 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import {
+  getDatabase, ref, push,
+  onChildAdded, onChildRemoved, onChildChanged,
+  update, remove
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// ---------- Firebase Config ----------
-const firebaseConfig = { 
+// Firebase
+const app = initializeApp({
   apiKey: "AIzaSyCbdkDgRpRiof4c-9JjeuZEEfmpxV9eM2g",
   authDomain: "chat-948ed.firebaseapp.com",
   projectId: "chat-948ed",
-  storageBucket: "chat-948ed.firebasestorage.app",
+  storageBucket: "chat-948ed.appspot.com",
   messagingSenderId: "892172240411",
   appId: "1:892172240411:web:92d9c62834db6929479abe",
-  measurementId: "G-4ML1K78PBZ"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "messages");
 
-// ---------- Current User ----------
+// User
 let currentUser = localStorage.getItem("chatUser");
-
 if (currentUser) {
-    document.getElementById("registerScreen").style.display = "none";
-    document.getElementById("currentUserDisplay").textContent = currentUser;
+  document.getElementById("registerScreen").style.display = "none";
+  document.getElementById("currentUserDisplay").textContent = currentUser;
 }
 
-window.registerUser = function () {
-    const name = document.getElementById("regName").value.trim();
-    if (!name) return;
-    localStorage.setItem("chatUser", name);
-    location.reload();
+window.registerUser = () => {
+  const name = regName.value.trim();
+  if (!name) return;
+  localStorage.setItem("chatUser", name);
+  location.reload();
 };
 
-// ---------- Elements ----------
+// Elements
 const chatBox = document.getElementById("chatBox");
 const msgInput = document.getElementById("message");
 const notifSound = document.getElementById("notifSound");
 
-// ---------- Send Message ----------
-window.sendMessage = function () {
-    const msg = msgInput.value.trim();
-    if (!msg) return;
+// Send text
+window.sendMessage = () => {
+  const msg = msgInput.value.trim();
+  if (!msg) return;
 
-    push(chatRef, {
-        user: currentUser,
-        message: msg,
-        time: Date.now(),
-        seen: [currentUser]
-    });
+  push(chatRef, {
+    user: currentUser,
+    type: "text",
+    content: msg,
+    time: Date.now(),
+    seen: [currentUser]
+  });
 
-    msgInput.value = "";
+  msgInput.value = "";
 };
 
-// ---------- Seen Update ----------
-function updateSeen(snapshot) {
-    const updates = {};
+// Create message DOM once
+function createMessage(key, data) {
+  const div = document.createElement("div");
+  div.className = `message ${data.user === currentUser ? "right" : "left"}`;
+  div.id = key;
 
-    snapshot.forEach(childSnapshot => {
-        const data = childSnapshot.val();
-        const key = childSnapshot.key;
+  if (data.type === "text") {
+    div.innerHTML += `<span>${data.content}</span>`;
+  }
 
-        if (!data.seen?.includes(currentUser)) {
-            updates[`messages/${key}/seen`] = [...(data.seen || []), currentUser];
-        }
+  if (data.type === "voice") {
+    div.innerHTML += `<audio controls src="${data.content}"></audio>`;
+  }
+
+  const time = new Date(data.time);
+  div.innerHTML += `<div style="font-size:10px;opacity:.6;margin-top:4px">
+      ${time.getHours().toString().padStart(2,"0")}:${time.getMinutes().toString().padStart(2,"0")}
+    </div>`;
+
+  if (data.user === currentUser) {
+    const del = document.createElement("button");
+    del.className = "delete-btn";
+    del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+    del.onclick = () => remove(ref(db, "messages/" + key));
+    div.appendChild(del);
+
+    const receipt = document.createElement("span");
+    receipt.className = "receipt";
+    receipt.style.fontSize = "10px";
+    receipt.style.opacity = "0.6";
+    receipt.innerText = data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
+    div.appendChild(receipt);
+  }
+
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // Seen update instantly
+  if (!data.seen.includes(currentUser)) {
+    update(ref(db, "messages/" + key), {
+      seen: [...data.seen, currentUser]
     });
+  }
 
-    if (Object.keys(updates).length > 0) {
-        update(ref(db), updates);
-    }
+  // Notification only for other user's new message
+  if (data.user !== currentUser && document.hidden) {
+    notifSound.play().catch(()=>{});
+  }
 }
 
-// Mark unseen messages as seen when tab becomes visible
-document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-        get(chatRef).then(snapshot => updateSeen(snapshot));
-    }
+// Real-time events
+onChildAdded(chatRef, snap => createMessage(snap.key, snap.val()));
+
+onChildRemoved(chatRef, snap => {
+  const el = document.getElementById(snap.key);
+  if (el) el.remove();
 });
 
-// ---------- Render Chat ----------
-let isInitialLoad = true;
-let previousMessageCount = 0;
+onChildChanged(chatRef, snap => {
+  const el = document.getElementById(snap.key);
+  if (!el) return;
 
-onValue(chatRef, snapshot => {
-    chatBox.innerHTML = "";
-
-    const currentCount = snapshot.numChildren();
-
-    snapshot.forEach(childSnapshot => {
-        const data = childSnapshot.val();
-        const key = childSnapshot.key;
-
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(data.user === currentUser ? "right" : "left");
-
-        // Message text
-        const textSpan = document.createElement("span");
-        textSpan.innerText = data.message;
-        div.appendChild(textSpan);
-
-        // Timestamp
-        if (data.time) {
-            const date = new Date(data.time);
-            const hours = date.getHours().toString().padStart(2, "0");
-            const minutes = date.getMinutes().toString().padStart(2, "0");
-
-            const timeSpan = document.createElement("div");
-            timeSpan.innerText = `${hours}:${minutes}`;
-            timeSpan.style.fontSize = "10px";
-            timeSpan.style.marginTop = "4px";
-            timeSpan.style.opacity = "0.6";
-
-            div.appendChild(timeSpan);
-        }
-
-        // Delete button (only own messages)
-        if (data.user === currentUser) {
-            const del = document.createElement("button");
-            del.className = "delete-btn";
-            del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
-            del.onclick = () => remove(ref(db, "messages/" + key));
-            div.appendChild(del);
-        }
-
-        // Read receipt
-        if (data.user === currentUser) {
-            const receipt = document.createElement("span");
-            receipt.style.fontSize = "10px";
-            receipt.style.marginLeft = "5px";
-            receipt.style.opacity = "0.6";
-            receipt.innerText = data.seen && data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
-            div.appendChild(receipt);
-        }
-
-        chatBox.appendChild(div);
-    });
-
-    // Scroll to bottom
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    // Update seen when tab is visible
-    if (!document.hidden) updateSeen(snapshot);
-
-    // Play notification sound only for real new messages
-    if (!isInitialLoad && currentCount > previousMessageCount && document.hidden) {
-        notifSound.play().catch(() => {});
-    }
-
-    previousMessageCount = currentCount;
-    if (isInitialLoad) isInitialLoad = false;
+  const receipt = el.querySelector(".receipt");
+  if (receipt) {
+    const data = snap.val();
+    receipt.innerText = data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
+  }
 });
 
-// ---------- Send on Enter ----------
-msgInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-    }
+// Enter key
+msgInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") sendMessage();
 });
