@@ -98,8 +98,8 @@ function addMessage(key, data) {
     // Delete + receipt for own message
     if (data.user === currentUser) {
         const del = document.createElement("button");
-        del.innerText = "×";
         del.className = "delete-btn";
+        del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
         del.onclick = () => remove(ref(db, "messages/" + key));
         div.appendChild(del);
 
@@ -108,7 +108,7 @@ function addMessage(key, data) {
         receipt.style.fontSize = "10px";
         receipt.style.marginLeft = "6px";
         receipt.style.opacity = "0.7";
-        receipt.innerText = data.seen.length > 1 ? "✓ Seen" : "✓ Sent";
+        receipt.innerText = data.seen.length > 1 ? "✓ Seen" : "- Sent";
         div.appendChild(receipt);
     }
 
