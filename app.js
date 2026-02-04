@@ -75,9 +75,17 @@ msgInput.addEventListener("keypress", e => {
 // ---------- Helpers ----------
 function formatTime(ts) {
     const d = new Date(ts);
-    return d.getHours().toString().padStart(2, "0") + ":" +
-           d.getMinutes().toString().padStart(2, "0");
+
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 becomes 12
+
+    return `${hours}:${minutes} ${ampm}`;
 }
+
 
 function getUserColor(name) {
     let hash = 0;
