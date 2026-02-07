@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bro-Sis Chat</title>
     <link rel="stylesheet" href="style.css" />
-     <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.freepik.com/512/309/309666.png">
+    <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.freepik.com/512/309/309666.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
 </head>
 <body>
-
 <audio id="notifSound" preload="auto">
     <source src="https://cdn.freesound.org/previews/662/662972_5674468-lq.mp3" type="audio/mpeg">
 </audio>
+
+<!-- Hidden file input for images -->
+<input type="file" id="imageInput" accept="image/*" style="display: none;" />
 
 <div id="registerScreen" class="register-screen">
     <div class="register-box">
@@ -30,10 +32,24 @@
            😊 <span id="currentUserDisplay"></span> 
         </div>
     </div>
-
     <div id="chatBox" class="chat-box"></div>
-
+    
+    <!-- Voice recording indicator -->
+    <div id="recordingIndicator" class="recording-indicator" style="display: none;">
+        <div class="pulse"></div>
+        <span>Recording... <span id="recordTimer">0:00</span></span>
+        <button id="stopRecordBtn" class="stop-record-btn">
+            <i class="fa fa-stop"></i> Stop
+        </button>
+    </div>
+    
     <div class="chat-input">
+        <button id="imageBtn" class="action-btn" aria-label="Send image" title="Send Image">
+            <i class="fa fa-image"></i>
+        </button>
+        <button id="voiceBtn" class="action-btn" aria-label="Record voice" title="Record Voice Message">
+            <i class="fa fa-microphone"></i>
+        </button>
         <input type="text" id="message" placeholder="Type a message..." autocomplete="off" />
         <button id="sendBtn" onclick="sendMessage()" aria-label="Send message">
             <i class="fa fa-paper-plane"></i>
