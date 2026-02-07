@@ -615,3 +615,29 @@ body {
     padding: 8px 12px;
   }
 }
+
+
+.logout-btn {
+  margin-left: 10px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.logout-btn:hover {
+  background: rgba(255,255,255,0.3);
+  transform: scale(1.1);
+}
+
+.logout-btn:active {
+  transform: scale(0.95);
+}
