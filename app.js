@@ -204,6 +204,7 @@ function formatDuration(seconds) {
 
 // ---------- Voice Player ----------
 const activeAudios = new Map();
+const notifiedMessages = new Set(); // Track which messages we've already notified for
 
 function createVoicePlayer(voiceData, duration, messageId) {
     const playerDiv = document.createElement("div");
@@ -373,8 +374,9 @@ function addMessage(key, data) {
         }
     }
 
-    // Notification sound for messages from others
-    if (data.user !== currentUser) {
+    // Notification sound for messages from others (only once per message)
+    if (data.user !== currentUser && !notifiedMessages.has(key)) {
+        notifiedMessages.add(key);
         notifSound.play().catch(() => {});
         
         // Browser notification if tab is not visible
@@ -405,6 +407,9 @@ onChildRemoved(chatRef, snap => {
         audio.pause();
         activeAudios.delete(snap.key);
     }
+    
+    // Clean up notification tracking
+    notifiedMessages.delete(snap.key);
 });
 
 onChildChanged(chatRef, snap => {
