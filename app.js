@@ -55,7 +55,18 @@ window.registerUser = function () {
     localStorage.setItem("chatUser", name);
     location.reload();
 };
-
+// ---------- Logout ----------
+document.addEventListener('DOMContentLoaded', () => {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('chatUser');
+                location.reload();
+            }
+        });
+    }
+});
 // ---------- Voice Recording ----------
 let mediaRecorder;
 let audioChunks = [];
